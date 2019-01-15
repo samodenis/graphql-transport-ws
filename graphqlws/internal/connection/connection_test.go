@@ -172,7 +172,7 @@ func TestConnect(t *testing.T) {
 	for _, tt := range testTable {
 		t.Run(tt.name, func(t *testing.T) {
 			ws := newConnection()
-			go connection.Connect(ws, tt.svc)
+			go connection.Connect(ws, tt.svc, context.Background())
 			ws.test(t, tt.messages)
 		})
 	}
