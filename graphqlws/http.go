@@ -6,10 +6,11 @@ import (
 	"github.com/gorilla/websocket"
 
 	"github.com/samodenis/graphql-transport-ws/graphqlws/internal/connection"
+	"context"
 )
 
 type AuthValidator interface {
-	CheckAuth(r *http.Request) bool
+	CheckAuth(r *http.Request, ctx context.Context) (bool, context.Context)
 }
 
 const protocolGraphQLWS = "graphql-ws"
@@ -20,11 +21,12 @@ var upgrader = websocket.Upgrader{
 }
 
 // NewHandlerFunc returns an http.HandlerFunc that supports GraphQL over websockets
-func NewHandlerFunc(svc connection.GraphQLService, httpHandler http.Handler, authValidator AuthValidator) http.HandlerFunc {
+func NewHandlerFunc(rootCtx context.Context, svc connection.GraphQLService, httpHandler http.Handler, authValidator AuthValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		for _, subprotocol := range websocket.Subprotocols(r) {
 			if subprotocol == "graphql-ws" {
-				if !authValidator.CheckAuth(r) {
+				auth, ctx := authValidator.CheckAuth(r, rootCtx)
+				if !auth {
 					return
 				}
 				ws, err := upgrader.Upgrade(w, r, nil)
@@ -37,7 +39,7 @@ func NewHandlerFunc(svc connection.GraphQLService, httpHandler http.Handler, aut
 					return
 				}
 
-				go connection.Connect(ws, svc)
+				go connection.Connect(ws, svc, ctx)
 				return
 			}
 		}
