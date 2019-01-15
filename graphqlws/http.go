@@ -10,7 +10,7 @@ import (
 )
 
 type AuthValidator interface {
-	CheckAuth(r *http.Request, ctx context.Context) (bool, context.Context)
+	CheckAuth(r *http.Request, ctx context.Context) (context.Context, error)
 }
 
 const protocolGraphQLWS = "graphql-ws"
@@ -25,8 +25,8 @@ func NewHandlerFunc(rootCtx context.Context, svc connection.GraphQLService, http
 	return func(w http.ResponseWriter, r *http.Request) {
 		for _, subprotocol := range websocket.Subprotocols(r) {
 			if subprotocol == "graphql-ws" {
-				auth, ctx := authValidator.CheckAuth(r, rootCtx)
-				if !auth {
+				ctx, err := authValidator.CheckAuth(r, rootCtx)
+				if err != nil {
 					return
 				}
 				ws, err := upgrader.Upgrade(w, r, nil)
