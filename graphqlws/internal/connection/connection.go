@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -22,6 +23,8 @@ const (
 	typeError               operationMessageType = "error"
 	typeStart               operationMessageType = "start"
 	typeStop                operationMessageType = "stop"
+	typePing                operationMessageType = "ping"
+	typePong                operationMessageType = "pong"
 )
 
 type wsConnection interface {
@@ -223,6 +226,9 @@ func (conn *connection) readLoop(ctx context.Context, send sendFunc) {
 				onDone()
 			}
 			send(msg.ID, typeComplete, nil)
+
+		case typePing:
+			send("", typePong, nil)
 
 		case typeConnectionTerminate:
 			return
