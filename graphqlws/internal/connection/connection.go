@@ -54,6 +54,7 @@ type initMessagePayload struct{}
 // GraphQLService interface
 type GraphQLService interface {
 	Subscribe(ctx context.Context, document string, operationName string, variableValues map[string]interface{}) (payloads <-chan interface{}, err error)
+	Exec(ctx context.Context, queryString string, operationName string, variables map[string]interface{}) *interface{}
 }
 
 type connection struct {
@@ -227,7 +228,13 @@ func (conn *connection) readLoop(ctx context.Context, send sendFunc) {
 			send(msg.ID, typeComplete, nil)
 
 		case typePing:
-			send("", typePong, nil)
+			response := conn.service.Exec(ctx, "{check_subscription}", "", nil)
+			responseJSON, err := json.Marshal(response)
+			if err != nil {
+				send(msg.ID, typeError, errPayload(err))
+				continue
+			}
+			send("", typePong, responseJSON)
 
 		case typeConnectionTerminate:
 			return
