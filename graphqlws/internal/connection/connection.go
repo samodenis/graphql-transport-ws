@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"github.com/graph-gophers/graphql-go"
 )
 
 type operationMessageType string
@@ -54,7 +55,7 @@ type initMessagePayload struct{}
 // GraphQLService interface
 type GraphQLService interface {
 	Subscribe(ctx context.Context, document string, operationName string, variableValues map[string]interface{}) (payloads <-chan interface{}, err error)
-	Exec(ctx context.Context, queryString string, operationName string, variables map[string]interface{}) *interface{}
+	Exec(ctx context.Context, queryString string, operationName string, variables map[string]interface{}) *graphql.Response
 }
 
 type connection struct {
