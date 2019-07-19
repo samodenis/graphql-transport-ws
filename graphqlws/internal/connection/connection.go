@@ -24,6 +24,7 @@ const (
 	typeStart               operationMessageType = "start"
 	typeStop                operationMessageType = "stop"
 	typePing                operationMessageType = "ping"
+	typeReceive             operationMessageType = "receive"
 	typePong                operationMessageType = "pong"
 )
 
@@ -48,6 +49,10 @@ type startMessagePayload struct {
 	OperationName string                 `json:"operationName"`
 	Query         string                 `json:"query"`
 	Variables     map[string]interface{} `json:"variables"`
+}
+
+type receiveMessagePayload struct{
+	ID	string	`json:"id"`
 }
 
 type initMessagePayload struct{}
@@ -231,6 +236,21 @@ func (conn *connection) readLoop(ctx context.Context, send sendFunc) {
 
 		case typePing:
 			response := conn.service.Exec(ctx, "{check_subscription}", "", nil)
+			responseJSON, err := json.Marshal(response)
+			if err != nil {
+				send(msg.ID, typeError, errPayload(err))
+				continue
+			}
+			send("", typePong, responseJSON)
+
+		case typeReceive:
+			var rp receiveMessagePayload
+			if err := json.Unmarshal(msg.Payload, &rp); err != nil {
+				send(msg.ID, typeError, errPayload(err))
+				continue
+			}
+
+			response := conn.service.Exec(ctx, fmt.Sprintf("mutation {receive_socket_event(id:%s)}", rp.ID), "", nil)
 			responseJSON, err := json.Marshal(response)
 			if err != nil {
 				send(msg.ID, typeError, errPayload(err))
