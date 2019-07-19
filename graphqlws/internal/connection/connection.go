@@ -186,6 +186,7 @@ func (conn *connection) readLoop(ctx context.Context, send sendFunc) {
 				continue
 			}
 
+			ctx = context.WithValue(ctx, "socket_id", msg.ID)
 			opCtx, cancel := context.WithCancel(ctx)
 			// TODO: timeout this call, to guard against poor clients
 			c, err := conn.service.Subscribe(opCtx, osp.Query, osp.OperationName, osp.Variables)
