@@ -2,14 +2,12 @@ package connection
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/graph-gophers/graphql-go"
 	"math/rand"
 	"time"
-	"github.com/graph-gophers/graphql-go"
 )
 
 type operationMessageType string
@@ -195,11 +193,7 @@ func (conn *connection) readLoop(ctx context.Context, send sendFunc) {
 			}
 
 			opCtx, cancel := context.WithCancel(ctx)
-			jsonBytes, _ := json.Marshal(opCtx)
-			hasher := sha1.New()
-			hasher.Write(jsonBytes)
-			uniqID := generateRandomString(16) + "_" + base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-
+			uniqID := generateRandomString(64)
 			opCtx = context.WithValue(opCtx, "socket_id", uniqID)
 			// TODO: timeout this call, to guard against poor clients
 			c, err := conn.service.Subscribe(opCtx, osp.Query, osp.OperationName, osp.Variables)
