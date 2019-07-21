@@ -2,9 +2,12 @@ package connection
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"time"
 	"github.com/graph-gophers/graphql-go"
 )
@@ -191,8 +194,13 @@ func (conn *connection) readLoop(ctx context.Context, send sendFunc) {
 				continue
 			}
 
-			ctx = context.WithValue(ctx, "socket_id", msg.ID)
 			opCtx, cancel := context.WithCancel(ctx)
+			jsonBytes, _ := json.Marshal(opCtx)
+			hasher := sha1.New()
+			hasher.Write(jsonBytes)
+			uniqID := generateRandomString(16) + "_" + base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+
+			opCtx = context.WithValue(opCtx, "socket_id", uniqID)
 			// TODO: timeout this call, to guard against poor clients
 			c, err := conn.service.Subscribe(opCtx, osp.Query, osp.OperationName, osp.Variables)
 			if err != nil {
@@ -275,4 +283,23 @@ func errPayload(err error) json.RawMessage {
 		Message: err.Error(),
 	})
 	return b
+}
+
+func generateRandomString(length int) string {
+	rand.Seed(time.Now().UnixNano())
+	digits := "0123456789"
+	all := "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+		"abcdefghijklmnopqrstuvwxyz" +
+		digits
+	buf := make([]byte, length)
+	buf[0] = all[rand.Intn(len(digits))]
+	for i := 1; i < length; i++ {
+		buf[i] = all[rand.Intn(len(all))]
+	}
+	rand.Shuffle(len(buf), func(i, j int) {
+		buf[i], buf[j] = buf[j], buf[i]
+	})
+	str := string(buf)
+
+	return str
 }
